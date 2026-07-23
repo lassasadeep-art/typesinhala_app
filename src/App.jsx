@@ -11,10 +11,19 @@ function App() {
   const recognitionRef = useRef(null);
 
   useEffect(() => {
-    // Initialize Speech Recognition
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    
-    if (SpeechRecognition) {
+    if (!SpeechRecognition) {
+      setStatus('Speech Recognition API not supported in this browser. Please use Chrome or Edge.');
+    } else {
+      setStatus('Ready. Click the microphone to start.');
+    }
+  }, []);
+
+  const startListening = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+
+    try {
       const recognition = new SpeechRecognition();
       recognition.continuous = true;
       recognition.interimResults = true;
@@ -37,7 +46,6 @@ function App() {
           }
         }
         
-        // Append final results to the existing text
         if (finalTranscript) {
           setUnicodeText(prev => {
             const newText = prev + (prev ? ' ' : '') + finalTranscript;
@@ -45,9 +53,6 @@ function App() {
             return newText;
           });
         }
-        
-        // Just to show interim results, we can temporarily update it but here we'll stick to final for simplicity
-        // or we can update it all if we want live typing. 
       };
 
       recognition.onerror = (event) => {
@@ -58,20 +63,26 @@ function App() {
 
       recognition.onend = () => {
         setIsListening(false);
-        setStatus('Microphone off.');
+        setStatus('Microphone off. Click to start again.');
       };
 
       recognitionRef.current = recognition;
-    } else {
-      setStatus('Speech Recognition API not supported in this browser. Please use Chrome or Edge.');
+      recognition.start();
+    } catch (err) {
+      console.error(err);
+      setStatus('Error starting microphone.');
+      setIsListening(false);
     }
-  }, []);
+  };
 
   const toggleListen = () => {
     if (isListening) {
-      recognitionRef.current?.stop();
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      setIsListening(false);
     } else {
-      recognitionRef.current?.start();
+      startListening();
     }
   };
 
